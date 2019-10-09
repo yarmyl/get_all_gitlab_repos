@@ -4,6 +4,8 @@
 import gitlab
 import requests
 import argparse
+import os
+import re
 
 
 class Gitapi:
@@ -64,6 +66,13 @@ class Gitapi:
 
     def get_proj(self, id):
         return self.gl.projects.get(id)
+    
+    def proj_list_path(self):
+        projects = self.proj_list()
+        projects_name = []
+        for a in projects:
+            projects_name.append(self.get_proj(a.id).path_with_namespace)
+        return projects_name
 
 
 def createParser():
@@ -84,9 +93,17 @@ def main():
         'pass': namespace.passwd
     }
     gitapi = Gitapi(git)
-    print(gitapi.proj_list_name())
-    print(gitapi.group_list_name())
-#    print(gitapi.get_group(gitapi.group_list()[0].id).name)
+#    for dir in gitapi.proj_list_name():
+#      os.mkdir(dir)
+    for dir in gitapi.group_list_name():
+        if not os.path.exists(dir):
+           os.mkdir(dir)
+#    print(gitapi.get_proj(gitapi.proj_list()[1].id))
+    paths = gitapi.proj_list_path()
+    for dir in paths:
+        os.chdir(re.split('/', dir)[0])
+        os.system("git clone git@" + re.split('http://', namespace.url)[1] + ':' + dir + '.git')
+        os.chdir('..')
 
 
 if __name__ == "__main__":
