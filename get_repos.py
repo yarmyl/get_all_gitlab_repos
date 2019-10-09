@@ -66,13 +66,21 @@ class Gitapi:
 
     def get_proj(self, id):
         return self.gl.projects.get(id)
-    
+
     def proj_list_path(self):
         projects = self.proj_list()
         projects_name = []
         for a in projects:
             projects_name.append(self.get_proj(a.id).path_with_namespace)
         return projects_name
+
+    def snippets_list(self):
+        ret = self.gl.snippets.public(all=True)
+        return ret
+    
+    def get_snippet_content(self, id, url):
+        r = requests.get(url + "/snippets/" + str(id) + "/raw")
+        return r.content
 
 
 def createParser():
@@ -93,6 +101,21 @@ def main():
         'pass': namespace.passwd
     }
     gitapi = Gitapi(git)
+ 
+    if not os.path.exists('snippets'):
+        os.mkdir('snippets')
+    os.chdir('snippets')
+    for snipp in gitapi.snippets_list():
+        file = open(snipp.title, 'w')
+        file.write(gitapi.get_snippet_content(snipp.id, namespace.url).decode("utf-8"))
+        file.close()
+    os.chdir('..')
+    
+#    print(gitapi.get_proj(782))
+    
+    if not os.path.exists('repos'):
+        os.mkdir('repos')
+    os.chdir('repos')
 #    for dir in gitapi.proj_list_name():
 #      os.mkdir(dir)
     for dir in gitapi.group_list_name():
@@ -101,10 +124,16 @@ def main():
 #    print(gitapi.get_proj(gitapi.proj_list()[1].id))
     paths = gitapi.proj_list_path()
     for dir in paths:
-        os.chdir(re.split('/', dir)[0])
+        print("Copy project " + dir)
+        try:
+            os.chdir(re.split('/', dir)[0])
+        except:
+            os.mkdir(re.split('/', dir)[0])
+            os.chdir(re.split('/', dir)[0])
         os.system("git clone git@" + re.split('http://', namespace.url)[1] + ':' + dir + '.git')
         os.chdir('..')
 
+    
 
 if __name__ == "__main__":
     main()
